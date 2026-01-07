@@ -1,0 +1,163 @@
+import requests
+import time
+import threading
+import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
+import argparse
+
+print("=" * 60)
+print("Load Testing Model Server (POC)")
+print("=" * 60)
+
+API_URL = "http://localhost:8000/predict"
+
+merchant_categories = ["Electronics", "Travel", "Grocery", "Dining", "Other"]
+
+# User IDs range from user_1001 to user_2000 (1000 users)
+USER_ID_START = 1001
+USER_ID_END = 2000
+
+def generate_request():
+    return {
+        "transaction_id": f"load_test_{random.randint(1, 1000000)}",
+        "user_id": f"user_{random.randint(USER_ID_START, USER_ID_END)}",
+        "amount": round(random.uniform(10, 2000), 2),
+        "transaction_hour": random.randint(0, 23),
+        "merchant_category": random.choice(merchant_categories),
+        "foreign_transaction": random.randint(0, 1),
+        "location_mismatch": random.randint(0, 1),
+        "device_trust_score": random.randint(0, 100),
+        "velocity_last_24h": random.randint(0, 10),
+        "cardholder_age": random.randint(18, 80)
+    }
+
+def send_request():
+    start = time.time()
+    try:
+        response = requests.post(API_URL, json=generate_request(), timeout=5)
+        latency = (time.time() - start) * 1000
+        
+        if response.status_code == 200:
+            return {"success": True, "latency": latency, "response": response.json()}
+        else:
+            return {"success": False, "latency": latency, "error": response.status_code}
+    except Exception as e:
+        latency = (time.time() - start) * 1000
+        return {"success": False, "latency": latency, "error": str(e)}
+
+def run_load_test(rps, duration, workers):
+    total_requests = rps * duration
+    requests_per_worker = total_requests // workers
+    
+    print(f"\n[Configuration]")
+    print(f"  - Target RPS: {rps}")
+    print(f"  - Duration: {duration}s")
+    print(f"  - Workers: {workers}")
+    print(f"  - Total requests: {total_requests}")
+    print(f"\n[Starting load test...]")
+    
+    results = []
+    start_time = time.time()
+    
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = []
+        for _ in range(total_requests):
+            future = executor.submit(send_request)
+            futures.append(future)
+            time.sleep(1.0 / rps)
+        
+        for i, future in enumerate(as_completed(futures), 1):
+            result = future.result()
+            results.append(result)
+            
+            if i % (total_requests // 10) == 0:
+                print(f"  Progress: {i}/{total_requests} ({i*100//total_requests}%)")
+    
+    elapsed = time.time() - start_time
+    
+    print(f"\n[Results]")
+    print("=" * 60)
+    
+    successes = [r for r in results if r['success']]
+    failures = [r for r in results if not r['success']]
+    
+    success_rate = len(successes) / len(results) * 100
+    actual_rps = len(results) / elapsed
+    
+    latencies = [r['latency'] for r in successes]
+    latencies.sort()
+    
+    print(f"\nRequests:")
+    print(f"  - Total: {len(results)}")
+    print(f"  - Success: {len(successes)}")
+    print(f"  - Failed: {len(failures)}")
+    print(f"  - Success rate: {success_rate:.2f}%")
+    
+    print(f"\nThroughput:")
+    print(f"  - Actual RPS: {actual_rps:.1f}")
+    print(f"  - Duration: {elapsed:.2f}s")
+    
+    if latencies:
+        print(f"\nLatency:")
+        print(f"  - Average: {sum(latencies)/len(latencies):.2f}ms")
+        print(f"  - Min: {min(latencies):.2f}ms")
+        print(f"  - Max: {max(latencies):.2f}ms")
+        print(f"  - P50: {latencies[len(latencies)//2]:.2f}ms")
+        print(f"  - P95: {latencies[int(len(latencies)*0.95)]:.2f}ms")
+        print(f"  - P99: {latencies[int(len(latencies)*0.99)]:.2f}ms")
+        
+        under_5ms = sum(1 for l in latencies if l < 5.0)
+        print(f"\n  - Under 5ms: {under_5ms}/{len(latencies)} ({under_5ms*100//len(latencies)}%)")
+    
+    if successes:
+        fraud_count = sum(1 for r in successes if r['response']['is_fraud'])
+        print(f"\nPredictions:")
+        print(f"  - Fraud detected: {fraud_count} ({fraud_count*100//len(successes)}%)")
+        print(f"  - Legitimate: {len(successes)-fraud_count} ({(len(successes)-fraud_count)*100//len(successes)}%)")
+    
+    if failures:
+        print(f"\nErrors:")
+        error_counts = defaultdict(int)
+        for f in failures:
+            error_counts[str(f['error'])] += 1
+        for error, count in error_counts.items():
+            print(f"  - {error}: {count}")
+    
+    print("\n" + "=" * 60)
+    
+    if success_rate >= 99 and latencies and latencies[int(len(latencies)*0.99)] < 5.0:
+        print("✓ Load test PASSED!")
+        print("  - Success rate >= 99%")
+        print("  - P99 latency < 5ms")
+    elif success_rate >= 99:
+        print("⚠ Load test PARTIAL PASS")
+        print("  - Success rate >= 99% ✓")
+        print("  - P99 latency >= 5ms ✗")
+    else:
+        print("✗ Load test FAILED")
+        print(f"  - Success rate: {success_rate:.2f}% (target: >= 99%)")
+    
+    print("=" * 60)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Load test the model server")
+    parser.add_argument("--rps", type=int, default=100, help="Requests per second (default: 100)")
+    parser.add_argument("--duration", type=int, default=30, help="Test duration in seconds (default: 30)")
+    parser.add_argument("--workers", type=int, default=10, help="Number of workers (default: 10)")
+    
+    args = parser.parse_args()
+    
+    print("\nChecking server availability...")
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        if response.status_code != 200:
+            print("✗ Server is not healthy")
+            exit(1)
+        print("✓ Server is healthy")
+    except Exception as e:
+        print(f"✗ Cannot connect to server: {e}")
+        print("  Make sure the server is running: python poc/serve_model.py")
+        exit(1)
+    
+    run_load_test(args.rps, args.duration, args.workers)

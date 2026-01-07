@@ -1,0 +1,41 @@
+
+
+a
+user?User entity for fraud detection - features are keyed by user_id"user_idJml_platform_poc
+ê‰²Ê æ´Âê‰²Ê æ´Â
+F
+&
+__dummy"
+__dummy_idJml_platform_poc
+±®Ê¨Ë•§ê‰²Ê¸®ÄÂ1"$10a61a78-e453-4837-ad8f-8a207e80dca4*ğ•øÊğÄÄÓ2š
+š
+user_featuresml_platform_pocuser"
+cardholder_age"
+device_trust_score"
+velocity_last_24h"
+foreign_transaction"
+location_mismatch"
+
+amount"
+transaction_hour"
+merchant_category*
+use_casefraud_model*
+teamfraud_detection2€ç„:ı	timestamp*created_timestampZSQ/Users/jchen65/dev/ai_playground/ml_deployment/data/credit_card_fraud_10k.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢Q/Users/jchen65/dev/ai_playground/ml_deployment/data/credit_card_fraud_10k.parquet@b
+user_idú
+ê‰²ÊøÛ Âğ•øÊğß»Ó
+ “’ÉĞ¥¸ ­°ÊĞ¥¸
+²ÎÖÉ¸¾åÑ²èôÊ¸¾åÑ
+¶ıÖÉĞâî]¶—õÊĞâî]
+¸ñ¸È¸±òÙ¸¥õÊ¸±òÙ
+Áñ¸ÈĞú±EÁ¥õÊĞú±E
+¼ò¸ÈÈ ¯ï¼¦õÊÈ ¯ï
+Çó¸È°ôïğÇ§õÊ°ôïğ
+İô¸È°©ç~İ¨õÊ°©ç~
+üõ¸È ÆÙÕü©õÊ ÆÙÕ
+Äû¸ÈøşSÄ¯õÊøşS
+Ÿø¹È€ôÔbŸ¬öÊ€ôÔb
+ï€ºÈ¨ÍÑï´öÊ¨ÍÑb	timestamp*created_timestampZSQ/Users/jchen65/dev/ai_playground/ml_deployment/data/credit_card_fraud_10k.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢Q/Users/jchen65/dev/ai_playground/ml_deployment/data/credit_card_fraud_10k.parquetªml_platform_pocz7
+ml_platform_poc$3e11715a-9a5b-47cc-b9ca-34ff486c7263Š1
+
+ml_platform_poc
+±®Ê¼¬”ê‰²ÊèË€ª

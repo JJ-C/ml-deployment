@@ -1,0 +1,234 @@
+# 1. Read this (2 min)
+cat README.md
+# 2. Run this (5 min)
+docker-compose up -d
+pip install -r requirements-poc.txt
+python poc/train_fraud_model.py
+python poc/populate_features.py
+python poc/serve_model.py
+# 3. Test (1 min)
+python poc/test_predictions.py
+
+
+https://github.com/onnx/onnx
+https://github.com/dmlc/xgboost
+
+
+docker-compose restart
+
+docker-compose down && docker-compose up -d
+
+# Connect to Cassandra
+docker exec -it $(docker ps -q -f name=cassandra) cqlsh
+# Check the keyspace
+USE feast_online_store;
+# List tables
+DESCRIBE TABLES;
+# See table structure
+DESCRIBE TABLE <table_name>;
+
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "txn_test_001",
+    "user_id": "user_1193",
+    "amount": 100.0,
+    "transaction_hour": 14,
+    "merchant_category": "Grocery",
+    "foreign_transaction": 0,
+    "location_mismatch": 0,
+    "device_trust_score": 85,
+    "velocity_last_24h": 2,
+    "cardholder_age": 35
+  }'
+
+  level=logging.DEBUG,
+
+# Step 1: Already done - user_id added ✓
+# Step 2: Optional - generate dev features
+python scripts/generate_dev_features.py
+# Step 3: Apply Feast configuration
+python scripts/feast_setup.py
+# Step 4: Materialize features
+python scripts/feast_materialize.py
+# Step 5: Start server
+python poc/serve_model_feast.py
+# Step 6: Test
+python poc/test_predictions.py
+# Step 7: Load test
+python poc/load_test.py
+
+
+Looking at where you are in the setup process, you've completed the data preparation (user_id added to training data). Here's the development roadmap:
+
+## 🎯 Immediate Next Steps (Complete Feast Setup)
+
+### **Step 2: Generate Dev Features (Optional but Recommended)**
+```bash
+python scripts/generate_dev_features.py
+```
+This creates test users with known IDs for easier testing.
+
+### **Step 3: Apply Feast Configuration**
+```bash
+python scripts/feast_setup.py
+```
+This will:
+- Create Cassandra keyspace
+- Apply feature definitions with `user` entity
+- Verify setup
+
+### **Step 4: Materialize Features**
+```bash
+python scripts/feast_materialize.py
+```
+Loads features from Parquet into Cassandra online store.
+
+### **Step 5-7: Test & Validate**
+```bash
+python poc/serve_model_feast.py  # Start server
+python poc/test_predictions.py   # Test predictions
+python poc/load_test.py          # Load test
+```
+
+---
+
+## 🚀 After Basic Setup Works
+
+### **Phase 1: Production-Ready Feature Pipeline**
+
+1. **Real-time Feature Updates**
+   - Create a feature ingestion service that updates user features after each transaction
+   - Use Feast's `push` API to update online store in real-time
+   - Example: When transaction occurs → compute velocity → push to Feast
+
+2. **Feature Freshness Monitoring**
+   - Track when features were last updated
+   - Alert on stale features (e.g., >24 hours old)
+   - Add metrics for feature update latency
+
+3. **Handle Missing Users**
+   - Graceful fallback for new users not in feature store
+   - Default feature values for cold start
+   - Queue new users for feature computation
+
+### **Phase 2: Advanced Features**
+
+1. **Add More Entity Types**
+   - `card_id` entity for card-specific features
+   - `merchant_id` entity for merchant risk scores
+   - `device_id` entity for device fingerprinting
+
+2. **Feature Engineering**
+   - Time-windowed aggregations (1h, 24h, 7d, 30d)
+   - User spending patterns (avg amount, std dev)
+   - Merchant risk scores
+   - Location-based features
+
+3. **Feature Store Optimization**
+   - Add caching layer (Redis) for hot users
+   - Batch feature retrieval for multiple users
+   - Feature precomputation for high-risk scenarios
+
+### **Phase 3: MLOps & Monitoring**
+
+1. **Model Monitoring**
+   - Track prediction distribution drift
+   - Monitor feature drift
+   - A/B testing framework
+
+2. **Feature Quality**
+   - Data validation on feature ingestion
+   - Schema enforcement
+   - Outlier detection
+
+3. **Performance Optimization**
+   - Profile feature fetch latency
+   - Optimize Cassandra queries
+   - Add feature caching strategy
+
+### **Phase 4: Production Deployment**
+
+1. **Infrastructure**
+   - Containerize services (Docker/K8s)
+   - Set up CI/CD pipeline
+   - Add health checks and readiness probes
+
+2. **Observability**
+   - Distributed tracing (feature fetch → prediction)
+   - Structured logging
+   - Alerting on SLA violations
+
+3. **Scalability**
+   - Horizontal scaling for prediction service
+   - Cassandra cluster for high availability
+   - Load balancing
+
+---
+
+## 📋 Recommended Priority
+
+**Week 1:** Complete Feast setup and validate end-to-end flow
+**Week 2:** Build real-time feature update pipeline
+**Week 3:** Add monitoring and alerting
+**Week 4:** Production deployment prep
+
+Would you like me to help you with any specific phase? The most critical next step is **completing Steps 2-7** to validate the entire flow works.
+
+
+
+# 1. Train the model (~2-5 minutes)
+python poc/train_sentiment_model.py
+# 2. Start the API server (port 8001)
+python poc/serve_sentiment_model.py
+# 3. Test predictions
+python poc/test_sentiment_predictions.py
+# 4. Load test
+python poc/load_test_sentiment.py --rps 50 --duration 30
+
+curl -X POST http://localhost:8001/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This product is amazing! Best purchase ever!",
+    "request_id": "test_123"
+  }'
+
+curl -X POST http://localhost:8001/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This product is excellent",
+    "request_id": "test_123"
+  }'
+
+
+  curl -X POST http://localhost:8001/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "obama",
+    "request_id": "test_123"
+  }'
+
+curl "http://localhost:8002/books/search?query=Python&limit=5"
+
+curl -X POST http://localhost:8002/recommend \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Machine Learning",
+    "num_recommendations": 5
+  }'
+
+curl -X POST http://localhost:8002/recommend \
+  -H "Content-Type: application/json" \
+  -d '{
+    "book_id": "abc123",
+    "num_recommendations": 5
+  }'
+
+# 1. Train the model (~1-2 minutes)
+python poc/train_recommendation_model.py
+# 2. Start the API server (port 8002)
+python poc/serve_recommendation_model.py
+# 3. Test recommendations
+python poc/test_recommendation_predictions.py
+# 4. Load test
+python poc/load_test_recommendation.py --rps 20 --duration 30
